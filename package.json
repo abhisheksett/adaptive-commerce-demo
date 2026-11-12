@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "next dev --hostname 127.0.0.1",
         "build": "next build",
+        "deploy": "npm exec --yes --package=netlify-cli -- netlify deploy --prod --context production --site b4e21cec-c13c-4411-a76a-1fde5910e851",
         "start": "next start --hostname 127.0.0.1",
         "typecheck": "tsc --noEmit",
         "test": "vitest run"

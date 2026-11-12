@@ -6,7 +6,7 @@ Start with the [presenter script](#presenter-script) for a complete client walkt
 
 ## How it works, step by step
 
-1. **Start with a real application shell.** Next.js serves the React storefront, approved photographs, two brand presets and a catalog of 15 fictional products. Browsing, sorting, product details and shopping work without Claude. Presets change identity, imagery, copy, visual tokens and model voice; they are not isolated production tenants.
+1. **Start with a real application shell.** Next.js serves the React storefront, approved photographs, two brand presets and a catalog of 30 fictional products. Browsing, sorting, product details and shopping work without Claude. Presets change identity, imagery, copy, visual tokens and model voice; they are not isolated production tenants.
 2. **Capture the visitor's direction.** The visitor types an occasion or style request and can set explicit preferences, save products, add pieces to the bag or attach a consented photo. A typed wish is not automatically converted into a saved preference.
 3. **Assemble session context.** The browser sends the prompt, brand, preferences, saved/bag product IDs, optional locks/replacements and up to four ancestors of the active journey branch to `/api/experience`. Abandoned branches are not all sent. A photo is resized/re-encoded before submission.
 4. **Validate and authorize the request on the server.** Production requires private-demo credentials before storefront/API access. Same-origin, body-size, schema and product-ID checks precede an atomic site-wide usage reservation in Netlify Blobs. Shared daily/minute/concurrency limits survive cold starts and deploys; unavailable usage protection refuses paid work. Credentials remain server-side. This is shared demo access, not individual user identity or per-tenant protection.
@@ -39,7 +39,7 @@ Start with the [presenter script](#presenter-script) for a complete client walkt
 - Have a clothing-only JPEG, PNG or WebP reference ready, with permission to send it to Anthropic. Avoid faces and personal information. Source limits are 10 MB and 24 megapixels; the browser prepares a smaller attachment.
 - The fenced `text` blocks below are copyable website prompts, not terminal commands. Submit one at a time and wait for completion. Generated wording, section choices and products vary.
 - AI submissions and AI action buttons incur provider charges. Product browsing, saves, bag changes, history comparison and checkout do not call Claude.
-- This is a demo with 15 fictional products, illustrative photos and USD prices. Do not promise live inventory, actual delivery or production security approval.
+- This is a demo with 30 fictional products, illustrative photos and USD prices. Do not promise live inventory, actual delivery or production security approval.
 
 ### 1. Introduce the ordinary storefront
 

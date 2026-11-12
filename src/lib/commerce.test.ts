@@ -1,7 +1,10 @@
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   calculateOrder,
+  discoveryImageIds,
   mergeCart,
+  products,
   shoppingContextSchema,
   validateExperience,
   validateShoppingExperience,
@@ -27,6 +30,36 @@ import {
 } from "./discovery";
 
 describe("experience composition", () => {
+  it("supports at least thirty unique shoppable products and their approved images", () => {
+    expect(products.length).toBeGreaterThanOrEqual(30);
+    expect(new Set(products.map(product => product.id)).size).toBe(products.length);
+    for (const product of products) {
+      expect(discoveryImageIds).toContain(product.image);
+      expect(existsSync(new URL(`../../public/images/${product.image}.jpg`, import.meta.url))).toBe(true);
+      expect(product.price).toBeGreaterThan(0);
+      expect(product.sizes.length).toBeGreaterThan(0);
+      expect(calculateOrder([{ productId: product.id, size: product.sizes[0], quantity: 1 }]).subtotal).toBe(product.price);
+    }
+    expect(shoppingContextSchema.parse({ savedIds: products.map(product => product.id) }).savedIds).toHaveLength(products.length);
+  });
+  it("grounds new-product looks in catalog prices and material exclusions", () => {
+    const expandedLook = {
+      ...composition,
+      productIds: ["knit-poncho", "drawstring-trousers", "canvas-sneakers"],
+      sections: [
+        { type: "editorial", title: "A lighter journey", body: "Layers for the trip.", imageId: "knit-poncho" },
+        { type: "products", title: "The pieces", body: "A considered selection.", productIds: ["knit-poncho", "drawstring-trousers", "canvas-sneakers"], presentation: "rail" },
+        { type: "look", title: "Travel layers", body: "A knit, trousers and canvas shoes.", productIds: ["knit-poncho", "drawstring-trousers", "canvas-sneakers"] },
+      ],
+    };
+    expect(() => validateShoppingExperience(expandedLook, shoppingContextSchema.parse({ preferences: { budget: 342 } }))).not.toThrow();
+    expect(() => validateShoppingExperience(expandedLook, shoppingContextSchema.parse({ preferences: { budget: 341 } }))).toThrow(/budget/);
+    expect(() => validateShoppingExperience(expandedLook, shoppingContextSchema.parse({ preferences: { excludedMaterials: ["wool"] } }))).toThrow(/material/);
+    const processor = new MessageProcessor([new Catalog(discoveryCatalogId, "v0.9", Object.values(discoveryApis))], () => {});
+    processor.processMessages(discoveryMessages(validateExperience(expandedLook)));
+    expect(processor.getSurface("discovery")!.rootId).toBe("root");
+    processor.dispose();
+  });
   it("adds a whole look atomically without mutating the bag on failure", () => {
     const cart = [{ productId: "tee", size: "M", quantity: 9 }];
     expect(
