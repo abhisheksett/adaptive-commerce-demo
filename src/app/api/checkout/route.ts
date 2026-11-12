@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { calculateOrder, checkoutSchema } from "@/lib/commerce";
 import { allowRequest, readRequestBody } from "@/lib/server";
+import { requireDemoAccess } from "@/lib/demo-access";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const denied = await requireDemoAccess(request);
+  if (denied) return denied;
   if (!allowRequest("checkout", 40))
     return Response.json(
       { error: "Please try again in a minute." },

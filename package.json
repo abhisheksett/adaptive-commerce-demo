@@ -17,6 +17,7 @@
         "@a2ui/react": "0.15.0",
         "@a2ui/web_core": "0.15.0",
         "@anthropic-ai/sdk": "latest",
+        "@netlify/blobs": "11.1.9",
         "lucide-react": "latest",
         "next": "latest",
         "react": "latest",

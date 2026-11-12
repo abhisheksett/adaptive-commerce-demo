@@ -13,6 +13,8 @@ import {
 } from "@/lib/commerce";
 import { allowRequest, readRequestBody } from "@/lib/server";
 import { discoveryMessages } from "@/lib/discovery";
+import { requireDemoAccess } from "@/lib/demo-access";
+import { reserveDemoGeneration } from "@/lib/demo-usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -71,7 +73,9 @@ function constrainCatalogSchema(value: unknown) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireDemoAccess(request);
+  if (denied) return denied;
   return Response.json(
     {
       mode: process.env.ANTHROPIC_API_KEY ? "claude" : "unconfigured",
@@ -84,6 +88,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireDemoAccess(request);
+  if (denied) return denied;
   let input: z.infer<typeof requestSchema>;
   try {
     input = requestSchema.parse(await readRequestBody(request, 1000000));
@@ -126,9 +132,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const reservation = await reserveDemoGeneration();
+  if (reservation instanceof Response) return reservation;
+  const { release } = reservation;
   activeRequests += 1;
   const streamAbort = new AbortController();
-  const signal = AbortSignal.any([request.signal, streamAbort.signal]);
+  const signal = AbortSignal.any([
+    request.signal,
+    streamAbort.signal,
+    AbortSignal.timeout(85000),
+  ]);
   async function generate(
     progress?: (message: string) => void,
   ): Promise<Response> {
@@ -417,6 +430,7 @@ APPROVED IMAGES: ${JSON.stringify(discoveryImageIds)}`,
       );
     } finally {
       activeRequests -= 1;
+      await release();
     }
   }
   if (!request.headers.get("accept")?.includes("application/x-ndjson"))

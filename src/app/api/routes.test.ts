@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST as checkout } from "./checkout/route";
 import { GET as status, POST as compose } from "./experience/route";
+import { proxy } from "@/proxy";
 
 const create = vi.hoisted(() => vi.fn());
 const stream = vi.hoisted(() => vi.fn());
@@ -69,6 +70,92 @@ const providerEdit = (input: unknown = conciseEdit) => ({
 });
 
 describe("experience API", () => {
+  it("blocks anonymous and forged requests before model work, including direct routes", async () => {
+    vi.stubEnv(
+      "DEMO_PASSWORD",
+      "a-test-only-password-of-at-least-24-characters",
+    );
+    for (const authorization of [
+      "",
+      "Bearer forged",
+      "Basic !!!",
+      `Basic ${btoa("demo:incorrect")}`,
+      `Basic ${"x".repeat(600)}`,
+    ]) {
+      const incoming = request("experience", {
+        message: "Weekend",
+        brandId: "forme",
+      });
+      if (authorization) incoming.headers.set("authorization", authorization);
+      for (const handler of [compose, status, checkout, proxy]) {
+        const response = await handler(incoming.clone());
+        expect(response.status).toBe(401);
+        expect(response.headers.get("cache-control")).toContain("no-store");
+        expect(response.headers.get("www-authenticate")).toContain("Basic");
+      }
+    }
+    expect(create).not.toHaveBeenCalled();
+    expect(stream).not.toHaveBeenCalled();
+  });
+  it("fails closed in production when demo access is missing or weak", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    for (const password of ["", "short"]) {
+      vi.stubEnv("DEMO_PASSWORD", password);
+      const incoming = request("experience", {
+        message: "Weekend",
+        brandId: "forme",
+      });
+      expect((await compose(incoming.clone())).status).toBe(503);
+      expect((await proxy(incoming)).status).toBe(503);
+    }
+    expect(create).not.toHaveBeenCalled();
+  });
+  it("accepts valid private-demo credentials without exposing them", async () => {
+    const password = "a-test-only-password-of-at-least-24-characters";
+    vi.stubEnv("DEMO_PASSWORD", password);
+    vi.stubEnv("DEMO_USERNAME", "presenter");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-placeholder");
+    create.mockResolvedValue(providerEdit());
+    const incoming = request("experience", {
+      message: "Weekend",
+      brandId: "forme",
+    });
+    incoming.headers.set(
+      "authorization",
+      `Basic ${btoa(`presenter:${password}`)}`,
+    );
+    expect((await proxy(incoming.clone())).status).toBe(200);
+    expect((await status(incoming.clone())).status).toBe(200);
+    const response = await compose(incoming);
+    expect(response.status).toBe(200);
+    expect(await response.text()).not.toContain(password);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+  it("blocks paid work at the API boundary when AI is disabled or production storage is unavailable", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-placeholder");
+    vi.stubEnv("DEMO_AI_ENABLED", "false");
+    const disabled = await compose(
+      request("experience", { message: "Weekend", brandId: "forme" }),
+    );
+    expect(disabled.status).toBe(503);
+    expect(await disabled.json()).toMatchObject({ code: "DEMO_DISABLED" });
+    vi.stubEnv("DEMO_AI_ENABLED", "true");
+    vi.stubEnv("NODE_ENV", "production");
+    const password = "a-test-only-password-of-at-least-24-characters";
+    vi.stubEnv("DEMO_PASSWORD", password);
+    const incoming = request("experience", {
+      message: "Weekend",
+      brandId: "forme",
+    });
+    incoming.headers.set("authorization", `Basic ${btoa(`demo:${password}`)}`);
+    const unavailable = await compose(incoming);
+    expect(unavailable.status).toBe(503);
+    expect(await unavailable.json()).toMatchObject({
+      code: "USAGE_GUARD_UNAVAILABLE",
+    });
+    expect(create).not.toHaveBeenCalled();
+    expect(stream).not.toHaveBeenCalled();
+  });
   it("uses a strict catalog schema and caches only the stable system/catalog prefix", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-placeholder");
     create.mockResolvedValue(providerEdit());
@@ -299,7 +386,11 @@ describe("experience API", () => {
   });
   it("refuses composition without a key rather than generating a rule-based edit", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "");
-    expect(await (await status()).json()).toMatchObject({
+    expect(
+      await (
+        await status(new Request("http://localhost:3000/api/experience"))
+      ).json(),
+    ).toMatchObject({
       mode: "unconfigured",
     });
     const response = await compose(
