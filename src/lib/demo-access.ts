@@ -12,7 +12,7 @@ export async function requireDemoAccess(request: Request) {
     Vary: "Authorization",
     "X-Content-Type-Options": "nosniff",
   };
-  if (!password || password.length < 24)
+  if (!password || password.length < 8)
     return Response.json(
       { error: "Private demo access is not configured." },
       { status: 503, headers },

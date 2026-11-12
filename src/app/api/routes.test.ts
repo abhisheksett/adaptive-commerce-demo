@@ -99,7 +99,7 @@ describe("experience API", () => {
   });
   it("fails closed in production when demo access is missing or weak", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    for (const password of ["", "short"]) {
+    for (const password of ["", "short", "1234567"]) {
       vi.stubEnv("DEMO_PASSWORD", password);
       const incoming = request("experience", {
         message: "Weekend",
@@ -111,7 +111,7 @@ describe("experience API", () => {
     expect(create).not.toHaveBeenCalled();
   });
   it("accepts valid private-demo credentials without exposing them", async () => {
-    const password = "a-test-only-password-of-at-least-24-characters";
+    const password = "testpass";
     vi.stubEnv("DEMO_PASSWORD", password);
     vi.stubEnv("DEMO_USERNAME", "presenter");
     vi.stubEnv("ANTHROPIC_API_KEY", "test-placeholder");

@@ -287,7 +287,7 @@ An authenticated browser edit completed in approximately 9.2 seconds on one atte
 ### Owner access and controls
 
 - Open https://app.netlify.com/projects/life-demo and go to **Project configuration > Environment variables**.
-- The login username is `demo` unless `DEMO_USERNAME` is changed. View the generated `DEMO_PASSWORD` there, or replace it with a strong random password of at least 24 characters. Keep it private; it is not the Anthropic API key. Apply it in all contexts/scopes so proxy and server functions receive the same value, and rebuild/redeploy after changes.
+- The login username is `demo` unless `DEMO_USERNAME` is changed. View or replace `DEMO_PASSWORD` there. The minimum is 8 characters; use a unique password, with longer random passwords offering stronger protection against guessing. Keep it private; it is not the Anthropic API key. Apply it in all contexts/scopes so proxy and server functions receive the same value, and rebuild/redeploy after changes.
 - Defaults: `DEMO_DAILY_LIMIT=40` generations across the whole site per UTC day, `DEMO_PER_MINUTE_LIMIT=4`, and two simultaneous generations. A generation includes its possible repair; failed/cancelled generations still count. These are aggregate site limits, not per visitor or exact dollar caps.
 - Set `DEMO_AI_ENABLED=false` and redeploy to stop paid edits without disabling authenticated browsing or simulated checkout.
 - Configure an Anthropic project spending limit separately as a billing backstop. Shared-password access can still consume the allowance; rotate the password to revoke access.
