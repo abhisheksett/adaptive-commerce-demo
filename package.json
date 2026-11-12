@@ -1,0 +1,34 @@
+{
+    "name": "forme-experience",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "next dev --hostname 127.0.0.1",
+        "build": "next build",
+        "start": "next start --hostname 127.0.0.1",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run"
+    },
+    "overrides": {
+        "dompurify": "^3.4.17"
+    },
+    "dependencies": {
+        "@a2ui/react": "0.15.0",
+        "@a2ui/web_core": "0.15.0",
+        "@anthropic-ai/sdk": "latest",
+        "lucide-react": "latest",
+        "next": "latest",
+        "react": "latest",
+        "react-dom": "latest",
+        "zod": "^4.6.7",
+        "zod-a2ui": "npm:zod@3.25.76"
+    },
+    "devDependencies": {
+        "@types/node": "latest",
+        "@types/react": "latest",
+        "@types/react-dom": "latest",
+        "typescript": "latest",
+        "vitest": "latest"
+    }
+}
