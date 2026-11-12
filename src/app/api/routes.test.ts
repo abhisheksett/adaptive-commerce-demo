@@ -70,6 +70,47 @@ const providerEdit = (input: unknown = conciseEdit) => ({
 });
 
 describe("experience API", () => {
+  it("explicitly disables login without bypassing production AI safeguards", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DISABLE_PASSWORD_PROTECTION", "true");
+    vi.stubEnv("DEMO_PASSWORD", "");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-placeholder");
+    const incoming = request("experience", {
+      message: "Weekend",
+      brandId: "forme",
+    });
+    for (const handler of [proxy, status]) {
+      const response = await handler(incoming.clone());
+      expect(response.status).toBe(200);
+      expect(response.headers.has("www-authenticate")).toBe(false);
+    }
+    expect((await checkout(request("checkout", {}))).status).toBe(400);
+    vi.stubEnv("DEMO_AI_ENABLED", "false");
+    const disabled = await compose(incoming.clone());
+    expect(disabled.status).toBe(503);
+    expect(await disabled.json()).toMatchObject({ code: "DEMO_DISABLED" });
+    vi.stubEnv("DEMO_AI_ENABLED", "true");
+    const unavailable = await compose(incoming.clone());
+    expect(unavailable.status).toBe(503);
+    expect(await unavailable.json()).toMatchObject({
+      code: "USAGE_GUARD_UNAVAILABLE",
+    });
+    expect(create).not.toHaveBeenCalled();
+    expect(stream).not.toHaveBeenCalled();
+  });
+  it("keeps production login required unless the bypass is exactly true", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DEMO_PASSWORD", "");
+    for (const value of [undefined, "false", "TRUE", "1", ""]) {
+      vi.stubEnv("DISABLE_PASSWORD_PROTECTION", value);
+      const incoming = request("experience", {});
+      for (const handler of [proxy, status, compose, checkout]) {
+        expect((await handler(incoming.clone())).status).toBe(503);
+      }
+    }
+    expect(create).not.toHaveBeenCalled();
+    expect(stream).not.toHaveBeenCalled();
+  });
   it("blocks anonymous and forged requests before model work, including direct routes", async () => {
     vi.stubEnv(
       "DEMO_PASSWORD",

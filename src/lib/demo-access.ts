@@ -1,4 +1,6 @@
 export async function requireDemoAccess(request: Request) {
+  if (process.env.DISABLE_PASSWORD_PROTECTION === "true") return null;
+
   const password = process.env.DEMO_PASSWORD;
   if (
     process.env.NODE_ENV !== "production" &&

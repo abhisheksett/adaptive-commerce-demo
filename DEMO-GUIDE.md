@@ -287,6 +287,8 @@ An authenticated browser edit completed in approximately 9.2 seconds on one atte
 ### Owner access and controls
 
 - Open https://app.netlify.com/projects/life-demo and go to **Project configuration > Environment variables**.
+- Set `DISABLE_PASSWORD_PROTECTION=true` to remove login from pages and APIs; unset it or use `false` to require login. Only the exact value `true` enables the bypass. Apply it in all contexts/scopes. Anyone with the URL can use the shared AI allowance while login is disabled; usage limits and the AI kill switch remain active.
+- Rebuild/redeploy after every Netlify environment-variable change, including the password bypass, credentials, model selection and usage limits. Saving a variable alone does not update the running deployment.
 - The login username is `demo` unless `DEMO_USERNAME` is changed. View or replace `DEMO_PASSWORD` there. The minimum is 8 characters; use a unique password, with longer random passwords offering stronger protection against guessing. Keep it private; it is not the Anthropic API key. Apply it in all contexts/scopes so proxy and server functions receive the same value, and rebuild/redeploy after changes.
 - Defaults: `DEMO_DAILY_LIMIT=40` generations across the whole site per UTC day, `DEMO_PER_MINUTE_LIMIT=4`, and two simultaneous generations. A generation includes its possible repair; failed/cancelled generations still count. These are aggregate site limits, not per visitor or exact dollar caps.
 - Set `DEMO_AI_ENABLED=false` and redeploy to stop paid edits without disabling authenticated browsing or simulated checkout.
